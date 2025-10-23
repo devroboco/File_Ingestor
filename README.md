@@ -59,20 +59,44 @@ MSYS_NO_PATHCONV=1 docker exec -it localstack bash -lc "/scripts/test_flow.sh"
 ./down.sh
 ```
 
-Breve Explicação das Decisões
+## Breve Explicação das Decisões
 
-Para atender aos requisitos do desafio, foram tomadas algumas decisões técnicas importantes:
+### Para atender aos requisitos do desafio, foram tomadas algumas decisões técnicas importantes:
 
-Uso do LocalStack: permite simular os serviços da AWS localmente, garantindo um ambiente gratuito e controlado para desenvolvimento e testes.
+- Uso do LocalStack: permite simular os serviços da AWS localmente, garantindo um ambiente gratuito e controlado para desenvolvimento e testes.
 
-Empacotamento automático das Lambdas: o script setup_resources.sh utiliza o módulo zipfile do Python para criar o pacote lambdas.zip dentro do container, eliminando a necessidade de ferramentas externas como o zip.
+- Empacotamento automático das Lambdas: o script setup_resources.sh utiliza o módulo zipfile do Python para criar o pacote lambdas.zip dentro do container, eliminando a necessidade de ferramentas externas como o zip.
 
-Scripts idempotentes: todos os scripts podem ser executados várias vezes sem causar duplicação de recursos, o que simplifica os testes e reconfigurações.
+- Scripts idempotentes: todos os scripts podem ser executados várias vezes sem causar duplicação de recursos, o que simplifica os testes e reconfigurações.
 
-Lambda Proxy Integration: facilita o mapeamento de rotas no API Gateway, permitindo que as requisições HTTP sejam encaminhadas diretamente às funções Lambda.
+- Lambda Proxy Integration: facilita o mapeamento de rotas no API Gateway, permitindo que as requisições HTTP sejam encaminhadas diretamente às funções Lambda.
 
-Chave primária no formato file#<nome_do_arquivo>: facilita a identificação e recuperação dos registros no DynamoDB.
+- Chave primária no formato file#<nome_do_arquivo>: facilita a identificação e recuperação dos registros no DynamoDB.
 
-Serialização de dados com default=str: corrige erros ao converter objetos Decimal e datetime para JSON, garantindo compatibilidade no retorno da API.
+- Serialização de dados com default=str: corrige erros ao converter objetos Decimal e datetime para JSON, garantindo compatibilidade no retorno da API.
 
-Decodificação de URLs (unquote): adicionada ao api_lambda.py para permitir que o caractere # (usado na chave primária) seja corretamente interpretado ao acessar /files/{id}.
+- Decodificação de URLs (unquote): adicionada ao api_lambda.py para permitir que o caractere # (usado na chave primária) seja corretamente interpretado ao acessar /files/{id}.
+
+## Evidências do Funcionamento
+### Upload no S3
+O primeiro print mostra o momento em que o arquivo é enviado ao bucket ingestor-raw, o que aciona automaticamente a Lambda de ingestão.
+
+<img width="514" height="39" alt="Captura de tela 2025-10-22 232711" src="https://github.com/user-attachments/assets/f4fe00ac-a62e-48d1-97d1-893495391255" />
+
+### Execução da Lambda
+O segundo print exibe os logs da função ingest-lambda no CloudWatch (simulado pelo LocalStack).
+Ele comprova que a função foi executada em resposta ao evento ObjectCreated do S3.
+
+<img width="1841" height="56" alt="Captura de tela 2025-10-22 232832" src="https://github.com/user-attachments/assets/97572640-3380-46cc-b415-2901aad1d26c" />
+
+### Item Gravado no DynamoDB
+O terceiro print mostra a saída da consulta à tabela files no DynamoDB, com o registro do arquivo processado contendo seus metadados principais: bucket, key, size, etag, status=PROCESSED, processedAt, contentType e checksum.
+
+<img width="591" height="551" alt="Captura de tela 2025-10-22 232858" src="https://github.com/user-attachments/assets/2ca6b5fa-5dac-4db5-80c9-9c44fa2577f7" />
+
+### API Respondendo
+O último print mostra a API em funcionamento, retornando a lista de arquivos processados pelo endpoint /files e a consulta individual pelo endpoint /files/{id}.
+
+<img width="1843" height="144" alt="Captura de tela 2025-10-22 232921" src="https://github.com/user-attachments/assets/1b47344f-fd72-400f-a0ad-f4b2fb77c1ac" />
+
+
