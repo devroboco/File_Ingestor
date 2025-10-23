@@ -1,0 +1,17 @@
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,dynamodb,lambda,apigateway,logs
+      - AWS_DEFAULT_REGION=us-east-1
+      - LS_LOG=info
+      - PERSISTENCE=1
+      - LAMBDA_EXECUTOR=docker-reuse
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./.localstack:/var/lib/localstack"
+      - "./lambdas:/lambdas"
+      - "./scripts:/scripts"
